@@ -84,7 +84,7 @@ public class ConsoleHandler extends Handler {
       for (ConsoleHandlerState.Writer outputStreamWriter : outputStreamWriters) {
         synchronized (outputStreamWriter) {
           outputStreamWriter.write(formatted);
-          if (record.getLevel().intValue() >= Level.SEVERE.intValue()) {
+          if (record.getLevel().intValue() >= Level.FINE.intValue()) {
             outputStreamWriter.flush();
           }
         }

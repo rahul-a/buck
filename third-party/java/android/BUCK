@@ -45,3 +45,21 @@ prebuilt_jar(
     binary_jar = "layoutlib-api-25.2.0.jar",
     source_jar = "layoutlib-api-25.2.0-sources.jar",
 )
+
+prebuilt_jar(
+    name = "data-binding-base",
+    binary_jar = "databinding-baseLibrary-2.2.3.jar",
+    source_jar = "databinding-baseLibrary-2.2.3-sources.jar",
+    visibility = [
+      "PUBLIC"
+    ]
+)
+
+prebuilt_jar(
+    name = "data-binding-compiler",
+    binary_jar = "databinding-compiler-2.2.3.jar",
+    source_jar = "databinding-compiler-2.2.3-sources.jar",
+    visibility = [
+        "PUBLIC"
+    ]
+)

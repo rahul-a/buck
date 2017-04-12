@@ -35,6 +35,7 @@ import com.facebook.buck.rules.SourcePathRuleFinder;
 import com.facebook.buck.rules.TargetGraph;
 import com.facebook.buck.testutil.FakeProjectFilesystem;
 import com.facebook.buck.timing.FakeClock;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -105,6 +106,37 @@ public class MiniAaptTest {
             new FakeRDotTxtEntry(IdType.INT, RType.ID, "button2")));
   }
 
+  @Test
+  public void testFindingLayoutResources()
+      throws IOException, XPathExpressionException, ResourceParseException {
+    filesystem.writeLinesToPath(RESOURCES, Paths.get("resource.xml"));
+
+    MiniAapt aapt = new MiniAapt(
+        resolver,
+        filesystem,
+        new FakeSourcePath(filesystem, "res"),
+        Paths.get("R.txt"),
+        ImmutableSet.of());
+
+    ImmutableSet.Builder<RDotTxtEntry> references = ImmutableSet.builder();
+    aapt.processXmlFile(filesystem, Paths.get("resource.xml"), references);
+
+    Set<RDotTxtEntry> definitions = aapt.getResourceCollector().getResources();
+
+    assertEquals(
+        definitions,
+        ImmutableSet.<RDotTxtEntry>of(
+            new FakeRDotTxtEntry(IdType.INT, RType.ID, "button1"),
+            new FakeRDotTxtEntry(IdType.INT, RType.ID, "button3")));
+
+    assertEquals(
+        references.build(),
+        ImmutableSet.<RDotTxtEntry>of(
+            new FakeRDotTxtEntry(IdType.INT, RType.DRAWABLE, "some_image"),
+            new FakeRDotTxtEntry(IdType.INT, RType.STRING, "text"),
+            new FakeRDotTxtEntry(IdType.INT, RType.STYLE, "Buck_Theme"),
+            new FakeRDotTxtEntry(IdType.INT, RType.ID, "button2")));
+  }
 
   @Test
   public void testParsingFilesUnderValuesDirectory() throws IOException, ResourceParseException {
@@ -304,7 +336,7 @@ public class MiniAaptTest {
         filesystem,
         new FakeSourcePath(filesystem, "res"),
         Paths.get("R.txt"),
-        ImmutableSet.of(),
+        Preconditions.checkNotNull(pathToGenResDir), ImmutableSet.of(),
         /* resourceUnion */ false,
         /* isGrayscaleImageProcessingEnabled */ true);
     aapt.processDrawables(filesystem, Paths.get("fbui_tomato.g.png"));
@@ -495,6 +527,39 @@ public class MiniAaptTest {
   }
 
   @Test
+  public void testParsingOfDataBindingLayoutNodeId()
+      throws XPathExpressionException, IOException, ResourceParseException {
+
+    ImmutableList<String> lines = ImmutableList.<String>builder().add(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
+        "<layout>",
+        "<data>",
+        "<variable",
+        "name=\"viewModel\"",
+        "/>",
+        "</data>",
+        "<LinearLayout>",
+        "<Button android:id=\"@+id/button1\" ",
+        "android:text=\"@{viewModel.buttonText}\"",
+        "android:layout_toLeftOf=\"@id/button2\" />",
+        "</LinearLayout>",
+        "</layout>"
+        )
+        .build();
+
+    Path resource = Paths.get("data_binding_resource.xml");
+    filesystem.writeLinesToPath(lines, resource);
+
+    MiniAapt aapt = new MiniAapt(
+        resolver,
+        filesystem,
+        new FakeSourcePath(filesystem, "res"),
+        Paths.get("R.txt"),
+        ImmutableSet.of());
+    aapt.processXmlFile(filesystem, resource, ImmutableSet.builder());
+  }
+
+  @Test
   public void testProcessFileNamesInDirectory() throws IOException, ResourceParseException {
     filesystem.touch(Paths.get("res/drawable/icon.png"));
     filesystem.touch(Paths.get("res/drawable/another_icon.png.orig"));
@@ -603,7 +668,7 @@ public class MiniAaptTest {
         filesystem,
         new FakeSourcePath(filesystem, "res"),
         Paths.get("R.txt"),
-        ImmutableSet.of(depRTxt),
+        Preconditions.checkNotNull(new FakeSourcePath(filesystem, "res/layout").getRelativePath()), ImmutableSet.of(depRTxt),
         /* resourceUnion */ true,
         /* isGrayscaleImageProcessingEnabled */ false);
     aapt.processValuesFile(filesystem, Paths.get("values.xml"));

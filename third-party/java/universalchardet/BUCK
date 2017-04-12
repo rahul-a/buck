@@ -1,0 +1,7 @@
+prebuilt_jar(
+  name = "universal-char-det",
+  binary_jar = "juniversalchardet-1.0.3.jar",
+  visibility = [
+    "PUBLIC"
+  ]
+)

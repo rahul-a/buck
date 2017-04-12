@@ -22,6 +22,7 @@ import com.facebook.buck.android.aapt.RDotTxtEntry.RType;
 import com.facebook.buck.event.BuckEventBus;
 import com.facebook.buck.event.ConsoleEvent;
 import com.facebook.buck.io.ProjectFilesystem;
+import com.facebook.buck.log.Logger;
 import com.facebook.buck.rules.SourcePath;
 import com.facebook.buck.rules.SourcePathResolver;
 import com.facebook.buck.step.ExecutionContext;
@@ -89,6 +90,8 @@ public class MiniAapt implements Step {
       "eat-comment",
       "skip");
 
+  private static final Logger LOG = Logger.get(MiniAapt.class);
+
   private final SourcePathResolver resolver;
   private final ProjectFilesystem filesystem;
   private final SourcePath resDirectory;
@@ -130,6 +133,7 @@ public class MiniAapt implements Step {
     this.resourceCollector = new AaptResourceCollector();
     this.resourceUnion = resourceUnion;
     this.isGrayscaleImageProcessingEnabled = isGrayscaleImageProcessingEnabled;
+    LOG.info("MiniAapt got constructed");
   }
 
   private static XPathExpression createExpression(String expressionStr) {
@@ -505,6 +509,10 @@ public class MiniAapt implements Step {
       for (int i = 0; i < nodesUsingIds.getLength(); i++) {
         String resourceName = nodesUsingIds.item(i).getNodeValue();
         int slashPosition = resourceName.indexOf('/');
+        if (resourceName.matches("@\\{.+\\}")) {
+          continue;
+        }
+
         if (resourceName.charAt(0) != '@' || slashPosition == -1) {
           throw new ResourceParseException("Invalid definition of a resource: '%s'", resourceName);
         }

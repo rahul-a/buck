@@ -122,6 +122,8 @@ java_immutables_library(
     ],
     resources = [
         ":android-tools-common.jar",
+        ":data-binding-base-2.2.3.jar",
+        ":data-binding-compiler-2.2.3.jar",
         ":ddmlib.jar",
         ":guava.jar",
         ":kxml2.jar",
@@ -214,6 +216,16 @@ java_immutables_library(
 export_file(
     name = "android-tools-common.jar",
     src = "//third-party/java/android:common",
+)
+
+export_file(
+    name = "data-binding-compiler-2.2.3.jar",
+    src = "//third-party/java/android:data-binding-compiler",
+)
+
+export_file(
+    name = "data-binding-base-2.2.3.jar",
+    src = "//third-party/java/android:data-binding-base",
 )
 
 export_file(

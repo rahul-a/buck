@@ -20,6 +20,7 @@ import static com.facebook.buck.rules.BuildableProperties.Kind.ANDROID;
 import static com.facebook.buck.rules.BuildableProperties.Kind.LIBRARY;
 
 import com.facebook.buck.android.aapt.MiniAapt;
+import com.facebook.buck.android.aapt.ProcessDataBindingStep;
 import com.facebook.buck.model.BuildTarget;
 import com.facebook.buck.model.BuildTargets;
 import com.facebook.buck.rules.AbstractBuildRule;
@@ -33,11 +34,13 @@ import com.facebook.buck.rules.BuildableProperties;
 import com.facebook.buck.rules.ExplicitBuildTargetSourcePath;
 import com.facebook.buck.rules.InitializableFromDisk;
 import com.facebook.buck.rules.OnDiskBuildInfo;
+import com.facebook.buck.rules.PathSourcePath;
 import com.facebook.buck.rules.SourcePath;
 import com.facebook.buck.rules.SourcePathRuleFinder;
 import com.facebook.buck.rules.keys.SupportsInputBasedRuleKey;
 import com.facebook.buck.step.Step;
 import com.facebook.buck.step.fs.MakeCleanDirectoryStep;
+import com.facebook.buck.step.fs.MkdirStep;
 import com.facebook.buck.step.fs.TouchStep;
 import com.facebook.buck.step.fs.WriteFileStep;
 import com.facebook.buck.util.HumanReadableException;
@@ -85,6 +88,7 @@ public class AndroidResource extends AbstractBuildRule
 
   @VisibleForTesting
   static final String METADATA_KEY_FOR_R_DOT_JAVA_PACKAGE = "METADATA_KEY_FOR_R_DOT_JAVA_PACKAGE";
+  public static final boolean DATA_BINDING_ENABLED = true;
 
   @AddToRuleKey
   @Nullable
@@ -289,7 +293,6 @@ public class AndroidResource extends AbstractBuildRule
       final BuildableContext buildableContext) {
     buildableContext.recordArtifact(Preconditions.checkNotNull(pathToTextSymbolsFile));
     buildableContext.recordArtifact(Preconditions.checkNotNull(pathToRDotJavaPackageFile));
-
     ImmutableList.Builder<Step> steps = ImmutableList.builder();
     steps.addAll(
         MakeCleanDirectoryStep.of(
@@ -331,16 +334,43 @@ public class AndroidResource extends AbstractBuildRule
     ImmutableSet<Path> pathsToSymbolsOfDeps = symbolsOfDeps.get().stream()
         .map(context.getSourcePathResolver()::getAbsolutePath)
         .collect(MoreCollectors.toImmutableSet());
+
+    if (DATA_BINDING_ENABLED) {
+      steps.add(MkdirStep.of(getProjectFilesystem(), getGenResourcesPath()));
+      steps.add(MkdirStep.of(getProjectFilesystem(), getGenLayoutInfoPath()));
+
+      steps.add(
+          new ProcessDataBindingStep(
+              context.getSourcePathResolver(),
+              Preconditions.checkNotNull(context.getAndroidPlatformTargetSupplier().get()).getSdkDirectory(),
+              Preconditions.checkNotNull(res),
+              Preconditions.checkNotNull(getGenResourcesPath()),
+              Preconditions.checkNotNull(getGenLayoutInfoPath()),
+              rDotJavaPackageArgument));
+    }
+
+    SourcePath resDirectory = DATA_BINDING_ENABLED
+        ? new PathSourcePath(getProjectFilesystem(), getGenResourcesPath())
+        : res;
+
     steps.add(
         new MiniAapt(
             context.getSourcePathResolver(),
             getProjectFilesystem(),
-            Preconditions.checkNotNull(res),
+            resDirectory,
             Preconditions.checkNotNull(pathToTextSymbolsFile),
             pathsToSymbolsOfDeps,
             resourceUnion,
             isGrayscaleImageProcessingEnabled));
     return steps.build();
+  }
+
+  private Path getGenLayoutInfoPath() {
+    return BuildTargets.getGenPath(getProjectFilesystem(), getBuildTarget(), "%s#layout-info");
+  }
+
+  private Path getGenResourcesPath() {
+    return BuildTargets.getGenPath(getProjectFilesystem(), getBuildTarget(), "%s#resources");
   }
 
   @Override
@@ -401,13 +431,14 @@ public class AndroidResource extends AbstractBuildRule
 
   @Override
   public void addToCollector(AndroidPackageableCollector collector) {
-    if (res != null) {
-      if (hasWhitelistedStrings) {
-        collector.addStringWhitelistedResourceDirectory(getBuildTarget(), res);
-      } else {
-        collector.addResourceDirectory(getBuildTarget(), res);
-      }
+    SourcePath res = DATA_BINDING_ENABLED ? new PathSourcePath(getProjectFilesystem(), getGenResourcesPath()) : this.res;
+
+    if (hasWhitelistedStrings) {
+      collector.addStringWhitelistedResourceDirectory(getBuildTarget(), res);
+    } else {
+      collector.addResourceDirectory(getBuildTarget(), res);
     }
+
     if (assets != null) {
       collector.addAssetsDirectory(getBuildTarget(), assets);
     }

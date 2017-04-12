@@ -24,7 +24,7 @@ public enum CommandMode {
 
   static {
     RELEASE.loggingEnabled = true;
-    TEST.loggingEnabled = false;
+    TEST.loggingEnabled = true;
   }
 
   public boolean isLoggingEnabled() {

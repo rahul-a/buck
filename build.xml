@@ -89,9 +89,12 @@
 
   <fileset dir="${third-party.dir}/java" id="third-party.jars">
     <include name="ObjCBridge/ObjCBridge.jar" />
+    <include name="universalchardet/juniversalchardet-1.0.3.jar" />
+    <include name="android/data-binding-baseLibrary-2.2.3.jar" />
     <include name="android/sdk-common-25.2.0.jar" />
     <include name="android/common-25.2.0.jar" />
     <include name="android/layoutlib-api-25.2.0.jar" />
+    <include name="android/databinding-compiler-2.2.3.jar" />
     <include name="aopalliance/aopalliance.jar" />
     <include name="asm/asm-debug-all-5.0.3.jar" />
     <include name="closure-templates/soy-excluding-deps.jar" />
@@ -393,6 +396,8 @@
           tofile="${classes.dir}/com/facebook/buck/android/kxml2.jar"/>
     <copy file="${third-party.dir}/java/guava/guava-20.0.jar"
           tofile="${classes.dir}/com/facebook/buck/android/guava.jar"/>
+    <copy file="${third-party.dir}/java/android/databinding-compiler-2.2.3.jar"
+          tofile="${classes.dir}/com/facebook/buck/android/databinding-compiler-2.2.3.jar"/>
 
     <!--
       Copy the buck python parser code into the jar root so it can be imported
